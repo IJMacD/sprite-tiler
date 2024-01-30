@@ -14,7 +14,8 @@ export interface TileSet {
   tileWidth: number;
   tileHeight: number;
 }
-interface TileMapLayer {
+
+export interface TileMapLayer {
   name: string;
   tiles: Uint16Array;
 }

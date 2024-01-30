@@ -1,5 +1,5 @@
 import { CSSProperties, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
-import { TileMap, TileSet, getTileSetFromIndex } from './TileMap';
+import { TileMap, TileMapLayer, TileSet, getTileSetFromIndex } from './TileMap';
 import { useImages } from "./useImage";
 
 interface TileMapPreviewProps {
@@ -10,12 +10,10 @@ interface TileMapPreviewProps {
 
 export function TileMapPreview ({ map, tileSets, onClickTile }: TileMapPreviewProps) {
     const canvasRef = useRef(null as HTMLCanvasElement|null);
-    const [ showGrid, setShowGrid ] = useState(true);
+    const [ showGrid, setShowGrid ] = useState(false);
 
     const urls = useMemo(() => tileSets.map(ts => ts.imageURL), [tileSets]);
     const images = useImages(urls);
-
-    console.log("Render TileMapPreview");
 
     useEffect(() => {
         const ctx = canvasRef.current?.getContext("2d");
@@ -74,9 +72,7 @@ export function TileMapPreview ({ map, tileSets, onClickTile }: TileMapPreviewPr
             <h1>{map.name}</h1>
             <label>Show Grid <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} /></label>
             <div style={{position: "relative"}} onClick={handleClick} onMouseMove={handleMouseMove}>
-                {
-                    map.layers.map((layer, i) => <TileMapLayer key={i} tiles={layer.tiles} tileSets={tileSets} images={images} tileWidth={map.tileWidth} tileHeight={map.tileHeight} widthInTiles={map.widthInTiles} heightInTiles={map.heightInTiles} style={{position: "absolute"}} />)
-                }
+                <TileMapLayers layers={map.layers} tileSets={tileSets} images={images} tileWidth={map.tileWidth} tileHeight={map.tileHeight} widthInTiles={map.widthInTiles} heightInTiles={map.heightInTiles} style={{position: "absolute"}} />
                 {
                     showGrid &&
                     <canvas ref={canvasRef} style={{position: "absolute"}} />
@@ -86,7 +82,7 @@ export function TileMapPreview ({ map, tileSets, onClickTile }: TileMapPreviewPr
     );
 }
 
-interface TileMapLayerProps {
+interface SingleTileMapLayerProps {
     tiles: Uint16Array;
     tileSets: TileSet[];
     images: HTMLImageElement[];
@@ -97,15 +93,13 @@ interface TileMapLayerProps {
     style?: CSSProperties;
 }
 
-function TileMapLayer ({ tiles, tileSets, images, tileWidth, tileHeight, widthInTiles, heightInTiles, style }: TileMapLayerProps) {
+export function SingleTileMapLayer ({ tiles, tileSets, images, tileWidth, tileHeight, widthInTiles, heightInTiles, style }: SingleTileMapLayerProps) {
     const canvasRef = useRef(null as HTMLCanvasElement|null);
-
 
     useEffect(() => {
         const ctx = canvasRef.current?.getContext("2d");
 
         if (ctx) {
-            console.log("Render Layer");
 
             const width = tileWidth * widthInTiles;
             const height = tileHeight * heightInTiles;
@@ -144,6 +138,74 @@ function TileMapLayer ({ tiles, tileSets, images, tileWidth, tileHeight, widthIn
         }
 
     }, [tiles, tileSets, images, tileWidth, tileHeight, widthInTiles, heightInTiles]);
+
+    const canvasStyle: CSSProperties = {
+        ...style,
+    };
+
+    return <canvas ref={canvasRef} style={canvasStyle} />;
+}
+
+interface TileMapLayersProps {
+    layers: TileMapLayer[];
+    tileSets: TileSet[];
+    images: HTMLImageElement[];
+    tileWidth: number;
+    tileHeight: number;
+    widthInTiles: number;
+    heightInTiles: number;
+    style?: CSSProperties;
+}
+
+function TileMapLayers ({ layers, tileSets, images, tileWidth, tileHeight, widthInTiles, heightInTiles, style }: TileMapLayersProps) {
+    const canvasRef = useRef(null as HTMLCanvasElement|null);
+
+
+    useEffect(() => {
+        const ctx = canvasRef.current?.getContext("2d");
+
+        if (ctx) {
+            const width = tileWidth * widthInTiles;
+            const height = tileHeight * heightInTiles;
+
+            ctx.canvas.width = width;
+            ctx.canvas.height = height;
+
+            for (const layer of layers) {
+                const { tiles } = layer;
+
+                for (let i = 0; i < tiles.length; i++) {
+                    const tileX = i % widthInTiles;
+                    const tileY = Math.floor(i / heightInTiles);
+
+                    const x = tileX * tileWidth;
+                    const y = tileY * tileHeight;
+
+                    // ctx.fillText(tiles[i].toString(), x + 5, y + 10);
+
+                    const {
+                        tileSetIndex,
+                        tileSetTileIndex
+                    } = getTileSetFromIndex(tiles[i]);
+
+                    const img = images[tileSetIndex];
+
+                    if (img) {
+                        const tileSet = tileSets[tileSetIndex];
+                        const sourceWidthInTiles = Math.floor(img.width / tileSet.tileWidth);
+                        // const sourceHeightInTiles = Math.floor(img.height / tileSet.tileHeight);
+                        const sourceTileX = tileSetTileIndex % sourceWidthInTiles;
+                        const sourceTileY = Math.floor(tileSetTileIndex / sourceWidthInTiles);
+                        const sx = sourceTileX * tileSet.tileWidth;
+                        const sy = sourceTileY * tileSet.tileHeight;
+
+                        ctx.drawImage(img, sx, sy, tileSet.tileWidth, tileSet.tileHeight, x, y, tileWidth, tileHeight);
+                    }
+                }
+            }
+        }
+
+    }, [layers, tileSets, images]);
 
     const canvasStyle: CSSProperties = {
         ...style,
