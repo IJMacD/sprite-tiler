@@ -14,12 +14,17 @@ export function TileSetPreview ({ imageURL, tileWidth, tileHeight, selectedIndex
 
     const image = useImage(imageURL);
 
+    const gutter = 1;
+
     useEffect(() => {
         const ctx = canvasRef.current?.getContext("2d");
 
         if (image && ctx) {
-            ctx.canvas.width = image.width;
-            ctx.canvas.height = image.height;
+            ctx.canvas.width = image.width + 2 * gutter;
+            ctx.canvas.height = image.height + 2 * gutter;
+
+            // For outline at edges
+            ctx.translate(gutter, gutter);
 
             ctx.drawImage(image, 0, 0);
 
@@ -56,7 +61,7 @@ export function TileSetPreview ({ imageURL, tileWidth, tileHeight, selectedIndex
             const { nativeEvent: { offsetX, offsetY }, currentTarget: { width } } = e;
             const tileX = Math.floor(offsetX / tileWidth);
             const tileY = Math.floor(offsetY / tileHeight);
-            const widthInTiles = width / tileWidth;
+            const widthInTiles = (width - 2 * gutter) / tileWidth;
             onClickTile(tileY * widthInTiles + tileX);
         }
     }
