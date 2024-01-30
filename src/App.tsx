@@ -4,8 +4,8 @@ import { ImagePicker } from './ImagePicker';
 import { TileSetPreview } from './TileSetPreview';
 import { CreateMap } from './CreateMap';
 import { TileMapPreview } from './TileMapPreview';
-import { TileSet, TileMap, getTileSetFromIndex, getTileIndex, addLayer, setTile } from './TileMap';
-
+import { TileSet, TileMap, getTileSetFromIndex, getTileIndex, addLayer, setTile, TileMapLayer } from './TileMap';
+import { LayerEditor } from './LayerEditor';
 
 function App() {
   const [ pickingImage, setPickingImage ] = useState(true);
@@ -19,19 +19,24 @@ function App() {
     setPickingImage(false);
   }
 
-  function handleAddLayer () {
+  function handleAddLayer (name: string) {
     setTileMap(tileMap => {
       if (tileMap) {
-        const layerName = prompt("Enter Layer Name", `Layer ${tileMap.layers.length + 1}`);
-        if (layerName) {
-          return addLayer(tileMap, layerName);
-        }
+        return addLayer(tileMap, name);
       }
       return tileMap;
     });
   }
 
-  // TODO: mutable bad
+  function handleSetLayers (layers: TileMapLayer[]) {
+    setTileMap(tileMap => {
+      if (tileMap) {
+        return { ...tileMap, layers };
+      }
+      return tileMap;
+    });
+  }
+
   function placeTile (tileIndex: number) {
     setTileMap(tileMap => tileMap && setTile(tileMap, selectedLayerIndex, tileIndex, selectedTileIndex));
   }
@@ -50,9 +55,9 @@ function App() {
   return (
     <>
       <section style={{flexBasis:320, padding:8, display: "flex", flexDirection: "column"}}>
-        <section style={{flex: 1}}>
+        <section style={{flex: 1, overflowY: "auto"}}>
           <h1 style={headerStyle}>Tile Sets</h1>
-          <button onClick={() => setPickingImage(!pickingImage)}>Add Image</button>
+          <button onClick={() => setPickingImage(!pickingImage)}>Add Tile Set</button>
           {
             sourceTileSets.map((tileSet, i) => {
 
@@ -78,17 +83,7 @@ function App() {
           tileMap &&
           <section style={{flexBasis: 300}}>
             <h1 style={headerStyle}>Layers</h1>
-            <button onClick={handleAddLayer}>Add Layer</button>
-            <ul>
-              {
-                tileMap.layers.map((layer, i) => {
-                  const listItemStyle: CSSProperties = {
-                    fontWeight: i === selectedLayerIndex ? "bold" : "",
-                  };
-                  return <li key={i} style={listItemStyle} onClick={() => setSelectedLayerIndex(i)}>{layer.name}</li>;
-                })
-              }
-            </ul>
+            <LayerEditor layers={tileMap.layers} setLayers={handleSetLayers} addLayer={handleAddLayer} selectedLayerIndex={selectedLayerIndex} setSelectedLayerIndex={setSelectedLayerIndex} />
           </section>
         }
       </section>
